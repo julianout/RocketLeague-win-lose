@@ -1,3 +1,6 @@
+const params = new URLSearchParams(window.location.search);
+const demoMode = params.get("demo") === "1";
+
 const el = {
   connectionState: document.getElementById("connectionState"),
   connectionMode: document.getElementById("connectionMode"),
@@ -26,7 +29,11 @@ const el = {
 let configDirty = false;
 
 bindActions();
-connectLiveSocket();
+if (demoMode) {
+  renderState(createDemoState());
+} else {
+  connectLiveSocket();
+}
 
 function bindActions() {
   bindPost("testConnection", "/api/test-connection");
@@ -128,6 +135,83 @@ function renderState(state) {
   if (!configDirty) renderConfig(config);
   renderHistory(session.history || []);
   renderLogs(state.logs || []);
+}
+
+function createDemoState() {
+  const now = Date.now();
+  return {
+    config: {
+      statsApiUrl: "tcp://127.0.0.1:49123",
+      playerName: "",
+      primaryId: "",
+      manualTeamNum: null,
+      rankEnabled: true,
+      rankPlaylistId: "auto",
+      overlayDurationMs: 6500
+    },
+    session: {
+      wins: 12,
+      losses: 5,
+      streak: 3,
+      history: [
+        { result: "win", score: "2-4", playerTeamNum: 1, at: new Date(now - 120000).toISOString() },
+        { result: "win", score: "3-1", playerTeamNum: 0, at: new Date(now - 620000).toISOString() },
+        { result: "loss", score: "1-2", playerTeamNum: 1, at: new Date(now - 1140000).toISOString() }
+      ]
+    },
+    latestState: {
+      playerName: "PlayerOne",
+      playerTeamNum: 1,
+      winnerTeamNum: null,
+      teams: [
+        { TeamNum: 0, Score: 2 },
+        { TeamNum: 1, Score: 4 }
+      ],
+      playlist: {
+        id: 13,
+        short: "3V3",
+        label: "Ranked Standard 3v3",
+        source: "player-count",
+        confidence: "guess"
+      },
+      rank: {
+        status: "ready",
+        playlistShort: "3V3",
+        playlistName: "Ranked Standard 3v3",
+        rating: 1245,
+        tier: "Champion II",
+        division: "Division II"
+      }
+    },
+    connection: "connected",
+    connectionMode: "tcp",
+    logs: [
+      {
+        at: new Date(now - 8000).toISOString(),
+        level: "info",
+        message: "MMR Tracker recu",
+        details: { playlist: "Ranked Standard 3v3", rating: 1245, tier: "Champion II" }
+      },
+      {
+        at: new Date(now - 13000).toISOString(),
+        level: "info",
+        message: "Mode MMR detecte",
+        details: { playlist: "Ranked Standard 3v3", source: "player-count" }
+      },
+      {
+        at: new Date(now - 17000).toISOString(),
+        level: "info",
+        message: "Joueur detecte",
+        details: { name: "PlayerOne", teamNum: 1, source: "auto" }
+      },
+      {
+        at: new Date(now - 22000).toISOString(),
+        level: "info",
+        message: "Stats API connectee en TCP",
+        details: { host: "127.0.0.1", port: 49123 }
+      }
+    ]
+  };
 }
 
 function renderConnection(state) {

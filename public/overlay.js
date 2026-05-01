@@ -22,13 +22,15 @@ const el = {
 
 let hideTimer = null;
 
+document.body.classList.toggle("preview-mode", params.get("preview") === "1");
 el.sessionHud.style.display = settings.showHud ? "grid" : "none";
 document.body.classList.toggle("hud-hidden", !settings.showHud);
 if (params.get("demo") === "1") {
-  renderSession({ wins: 6, losses: 0, streak: 0 });
-  renderRank({ status: "ready", playlistShort: "2V2", rating: 1440 });
+  renderSession({ wins: 12, losses: 5, streak: 3 });
+  renderRank({ status: "ready", playlistShort: "3V3", rating: 1245 });
+} else {
+  connect();
 }
-connect();
 
 function connect() {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
