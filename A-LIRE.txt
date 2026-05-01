@@ -10,7 +10,7 @@ ROCKET LEAGUE WIN/LOSE OVERLAY
    - ne regle rien en usage normal
    - regarde juste Statut live / Session / Diagnostic
    - ouvre "Depannage manuel" seulement si l'auto-detection echoue
-   - lance DIAG-WINDOWS.bat si ca reste en connecting
+   - utilise "Test connexion" si ca reste en connecting
 
 4. Dans OBS, ajoute une Browser Source :
    http://localhost:5177/overlay.html
@@ -45,5 +45,5 @@ Resultat deduit sur MatchDestroyed = FF/abandon compte depuis le score connu.
 
 DIAGNOSTIC
 
-Si ca reste sur connecting, ferme Rocket League, relance-le, puis lance DIAG-WINDOWS.bat.
-Si le diagnostic dit "RIEN n'ecoute sur 49123", Rocket League n'a pas charge la Stats API.
+Si ca reste sur connecting, ferme Rocket League, relance-le, puis utilise "Test connexion"
+dans le panneau. Si le test TCP echoue sur 49123, Rocket League n'a pas charge la Stats API.

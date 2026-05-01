@@ -84,16 +84,16 @@ Le panneau de controle affiche les logs en direct. Les messages importants :
 
 Le fichier complet est aussi dans `data/overlay.log`.
 
-## Diagnostic Windows
+## Diagnostic
 
-Lance `DIAG-WINDOWS.bat` si le panneau reste en `connecting` ou `disconnected`.
+Utilise le bouton `Test connexion` du panneau si l'app reste en `connecting` ou `disconnected`.
 
 Le point cle :
 
 - `OK 127.0.0.1:49123 ouvert` : Rocket League ecoute, l'overlay doit pouvoir se connecter.
 - `RIEN n'ecoute sur 49123` ou `ECHEC 127.0.0.1:49123` : Rocket League n'a pas charge la Stats API. Verifie le bon fichier `DefaultStatsAPI.ini`, sauvegarde avec les droits admin si le jeu est dans `Program Files`, puis redemarre completement le jeu.
 
-Le panneau a aussi un bouton `Test connexion`. Il ecrit dans les logs :
+Le bouton ecrit dans les logs :
 
 - test TCP simple vers `49123`
 - test lecture TCP pendant quelques secondes
