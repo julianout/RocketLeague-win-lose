@@ -105,9 +105,9 @@ button.compact {
   top: 14px;
   display: grid;
   align-items: center;
-  grid-template-columns: 52px 1px 52px 1px 52px;
+  grid-template-columns: 86px 1px 48px 1px 48px 1px 48px;
   column-gap: 7px;
-  width: 218px;
+  width: 300px;
   height: 44px;
   padding: 7px 16px 6px 15px;
   overflow: hidden;
@@ -143,6 +143,17 @@ button.compact {
 .strip-item.loss,
 .strip-item.streak {
   justify-content: center;
+}
+
+.strip-item.mmr {
+  gap: 7px;
+  justify-content: center;
+}
+
+.mmr-mode {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 950;
 }
 
 .strip-separator {
@@ -214,7 +225,7 @@ button.compact {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  width: 218px;
+  width: 300px;
   height: 32px;
   padding: 0 11px;
   border-radius: 6px;

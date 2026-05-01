@@ -16,6 +16,7 @@ const {
   safePreview,
   writeJson
 } = require("./utils");
+const { inferPlaylist, normalizeRankPlaylistId } = require("./playlist");
 
 const DEFAULT_CONFIG = {
   statsApiUrl: "tcp://127.0.0.1:49123",
@@ -23,7 +24,9 @@ const DEFAULT_CONFIG = {
   playerName: "",
   primaryId: "",
   manualTeamNum: null,
-  overlayDurationMs: 6500
+  overlayDurationMs: 6500,
+  rankEnabled: true,
+  rankPlaylistId: "auto"
 };
 
 const DEFAULT_SESSION = {
@@ -39,12 +42,41 @@ function createEmptyMatchState() {
     matchGuid: "",
     playerTeamNum: null,
     playerName: "",
+    playerPrimaryId: "",
     winnerTeamNum: null,
     resultEligible: false,
+    maxPlayers: 0,
+    playlistGuessReady: false,
+    playlist: {
+      id: null,
+      short: "MMR",
+      label: "Mode inconnu",
+      source: "unknown",
+      confidence: "unknown"
+    },
+    rank: createEmptyRankState(),
     teams: [],
     game: null,
     players: [],
     lastEventAt: null
+  };
+}
+
+function createEmptyRankState(overrides = {}) {
+  return {
+    status: "idle",
+    signature: "",
+    playlistId: null,
+    playlistName: "Mode inconnu",
+    playlistShort: "MMR",
+    rating: null,
+    tier: "",
+    division: "",
+    matchesPlayed: null,
+    source: "tracker",
+    updatedAt: null,
+    error: null,
+    ...overrides
   };
 }
 
@@ -71,6 +103,8 @@ class AppState extends EventEmitter {
     this.lastWinnerSignature = "";
     this.lastDetectedPlayerSignature = "";
     this.lastManualTeamSignature = "";
+    this.lastPlaylistSignature = "";
+    this.lastRankRequestKey = "";
     this.missingPlayerConfigLogged = false;
     this.playerNotFoundLogged = false;
 
@@ -86,7 +120,12 @@ class AppState extends EventEmitter {
 
   loadConfig() {
     const config = { ...DEFAULT_CONFIG, ...readJson(this.paths.configPath, {}) };
-    return { ...config, statsApiUrl: normalizeStatsApiUrl(config.statsApiUrl) };
+    return {
+      ...config,
+      statsApiUrl: normalizeStatsApiUrl(config.statsApiUrl),
+      rankEnabled: config.rankEnabled !== false && config.rankEnabled !== "false",
+      rankPlaylistId: normalizeRankPlaylistId(config.rankPlaylistId)
+    };
   }
 
   loadSession() {
@@ -100,17 +139,23 @@ class AppState extends EventEmitter {
       normalize(nextConfig.playerName) !== normalize(this.config.playerName) ||
       normalize(nextConfig.primaryId) !== normalize(this.config.primaryId) ||
       normalize(nextConfig.manualTeamNum) !== normalize(this.config.manualTeamNum);
+    const rankConfigChanged =
+      normalize(nextConfig.rankEnabled) !== normalize(this.config.rankEnabled) ||
+      normalize(nextConfig.rankPlaylistId) !== normalize(this.config.rankPlaylistId);
 
     this.config = {
       ...this.config,
       ...nextConfig,
       statsApiUrl: normalizeStatsApiUrl(nextConfig.statsApiUrl),
       manualTeamNum: parseTeamNum(nextConfig.manualTeamNum),
+      rankEnabled: nextConfig.rankEnabled !== false && nextConfig.rankEnabled !== "false",
+      rankPlaylistId: normalizeRankPlaylistId(nextConfig.rankPlaylistId),
       serverPort: Number(nextConfig.serverPort || this.config.serverPort || DEFAULT_CONFIG.serverPort),
       overlayDurationMs: Number(nextConfig.overlayDurationMs || this.config.overlayDurationMs || DEFAULT_CONFIG.overlayDurationMs)
     };
 
     if (shouldResetMatch) this.resetLatestState();
+    if (rankConfigChanged) this.resetRankState();
     if (this.config.manualTeamNum !== null) this.latestState.playerTeamNum = this.config.manualTeamNum;
 
     writeJson(this.paths.configPath, this.config);
@@ -119,7 +164,9 @@ class AppState extends EventEmitter {
       playerName: this.config.playerName || null,
       primaryId: this.config.primaryId || null,
       manualTeamNum: this.config.manualTeamNum,
-      overlayDurationMs: this.config.overlayDurationMs
+      overlayDurationMs: this.config.overlayDurationMs,
+      rankEnabled: this.config.rankEnabled,
+      rankPlaylistId: this.config.rankPlaylistId
     });
     this.emitState();
 
@@ -146,9 +193,16 @@ class AppState extends EventEmitter {
     this.lastWinnerSignature = "";
     this.lastDetectedPlayerSignature = "";
     this.lastManualTeamSignature = "";
+    this.lastPlaylistSignature = "";
+    this.lastRankRequestKey = "";
     this.missingPlayerConfigLogged = false;
     this.playerNotFoundLogged = false;
     this.latestState = createEmptyMatchState();
+  }
+
+  resetRankState() {
+    this.lastRankRequestKey = "";
+    this.latestState.rank = createEmptyRankState();
   }
 
   resetSession() {
@@ -211,19 +265,28 @@ class AppState extends EventEmitter {
   handleMatchLifecycle(eventName, data) {
     const matchGuid = getField(data, "MatchGuid") || this.latestState.matchGuid || "";
     const activeRound = eventName === "CountdownBegin" || eventName === "RoundStarted";
+    const eventAllowsPlaylistGuess = eventName === "MatchInitialized" || activeRound;
+    const sameMatch = !matchGuid || matchGuid === this.latestState.matchGuid;
+    const playlistGuessReady = eventAllowsPlaylistGuess || (sameMatch && this.latestState.playlistGuessReady);
 
     if (matchGuid && matchGuid !== this.latestState.matchGuid) {
+      const previousRank = this.latestState.rank || createEmptyRankState();
       this.latestState = {
         ...createEmptyMatchState(),
         matchGuid,
+        playerName: this.latestState.playerName || "",
+        playerPrimaryId: this.latestState.playerPrimaryId || "",
         playerTeamNum: parseTeamNum(this.config.manualTeamNum),
-        resultEligible: activeRound
+        resultEligible: activeRound,
+        playlistGuessReady,
+        rank: hasDisplayableRank(previousRank) ? { ...previousRank, stale: true } : createEmptyRankState()
       };
     } else {
       this.latestState = {
         ...this.latestState,
         matchGuid,
         resultEligible: this.latestState.resultEligible || activeRound,
+        playlistGuessReady,
         lastEventAt: new Date().toISOString()
       };
     }
@@ -239,8 +302,9 @@ class AppState extends EventEmitter {
     const players = getArrayField(data, "Players").map(normalizePlayer).filter(Boolean);
     const game = normalizeGame(getField(data, "Game"));
     const configuredPlayer = this.findConfiguredPlayer(players);
-    const autoPlayer = configuredPlayer ? null : this.findAutoDetectedPlayer(players, game);
-    const player = configuredPlayer || autoPlayer;
+    const knownPlayer = configuredPlayer ? null : this.findKnownPlayer(players);
+    const autoPlayer = configuredPlayer || knownPlayer ? null : this.findAutoDetectedPlayer(players, game);
+    const player = configuredPlayer || knownPlayer || autoPlayer;
     const manualTeamNum = parseTeamNum(this.config.manualTeamNum);
     const winnerTeamNum = inferWinnerTeamNum(data, game);
     const now = Date.now();
@@ -251,6 +315,21 @@ class AppState extends EventEmitter {
     const previousResultEligible = isNewKnownMatch ? false : this.latestState.resultEligible;
     const resultEligible = previousResultEligible || (players.length > 0 && winnerTeamNum === null);
     const teamCount = game && Array.isArray(game.Teams) ? game.Teams.length : 0;
+    const activePlayerCount = countTeamPlayers(players);
+    const maxPlayers = isNewKnownMatch ? activePlayerCount : Math.max(this.latestState.maxPlayers || 0, activePlayerCount);
+    const playlistGuessReady = isNewKnownMatch ? false : this.latestState.playlistGuessReady;
+    const playlist = inferPlaylist({
+      data,
+      game,
+      players,
+      maxPlayers,
+      configuredPlaylistId: this.config.rankPlaylistId,
+      allowPlayerCountGuess: playlistGuessReady
+    });
+    const playerName = player && player.Name ? player.Name : this.latestState.playerName;
+    const playerPrimaryId = player && player.PrimaryId ? player.PrimaryId : this.latestState.playerPrimaryId;
+    const playerIdentity = playerPrimaryId ? { Name: playerName, PrimaryId: playerPrimaryId } : null;
+    const rank = this.buildRankState(playerIdentity, playlist);
 
     if (isEmptyState && now - this.lastEmptyUpdateStateDetailLogAt > 60000) {
       this.lastEmptyUpdateStateDetailLogAt = now;
@@ -262,14 +341,19 @@ class AppState extends EventEmitter {
     }
 
     this.logMatchProgress(matchGuid, players.length, teamCount, game, winnerTeamNum);
-    this.logMissingPlayerContext(player, players, manualTeamNum);
+    this.logMissingPlayerContext(player, players, manualTeamNum, playlistGuessReady);
 
     this.latestState = {
       matchGuid: matchGuid || this.latestState.matchGuid || "",
       playerTeamNum: player ? Number(player.TeamNum) : manualTeamNum ?? this.latestState.playerTeamNum,
-      playerName: player ? player.Name : this.latestState.playerName,
+      playerName,
+      playerPrimaryId,
       winnerTeamNum: winnerTeamNum ?? this.latestState.winnerTeamNum,
       resultEligible,
+      maxPlayers,
+      playlistGuessReady,
+      playlist,
+      rank,
       teams: game && Array.isArray(game.Teams) ? game.Teams : this.latestState.teams,
       game,
       players,
@@ -277,6 +361,8 @@ class AppState extends EventEmitter {
     };
 
     this.logPlayerDetection(player, configuredPlayer, manualTeamNum);
+    this.logPlaylistDetection(playlist);
+    this.queueRankLookup(playerIdentity, playlist);
     this.emitState();
   }
 
@@ -316,8 +402,10 @@ class AppState extends EventEmitter {
     }
   }
 
-  logMissingPlayerContext(player, players, manualTeamNum) {
-    if (!this.config.playerName && !this.config.primaryId && !player && manualTeamNum === null && !this.missingPlayerConfigLogged) {
+  logMissingPlayerContext(player, players, manualTeamNum, playlistGuessReady) {
+    const hasKnownPlayer = Boolean(this.latestState.playerName || this.latestState.playerPrimaryId);
+
+    if (!this.config.playerName && !this.config.primaryId && !player && !hasKnownPlayer && playlistGuessReady && players.length > 0 && manualTeamNum === null && !this.missingPlayerConfigLogged) {
       this.missingPlayerConfigLogged = true;
       this.log("warn", "Auto-detection impossible pour l'instant: aucun joueur/cible dans UpdateState. Mets ton pseudo ou une equipe manuelle dans le panneau.");
     }
@@ -342,7 +430,7 @@ class AppState extends EventEmitter {
           name: player.Name,
           primaryId: player.PrimaryId || null,
           teamNum: player.TeamNum,
-          source: configuredPlayer ? "config" : player.bAutoDetectedFromTarget ? "target" : player.bAutoDetectedSinglePlayer ? "single-player" : "auto"
+          source: configuredPlayer ? "config" : player.bAutoDetectedKnown ? "known" : player.bAutoDetectedFromTarget ? "target" : "auto"
         });
       }
       return;
@@ -360,6 +448,93 @@ class AppState extends EventEmitter {
     }
   }
 
+  logPlaylistDetection(playlist) {
+    const signature = `${playlist.id || "unknown"}|${playlist.source}|${playlist.confidence}`;
+    if (signature === this.lastPlaylistSignature) return;
+
+    this.lastPlaylistSignature = signature;
+    const isPending = playlist.source === "waiting-for-start";
+    this.log(isPending || playlist.id !== null ? "info" : "warn", isPending ? "Mode MMR en attente" : playlist.id === null ? "Mode MMR inconnu" : "Mode MMR detecte", {
+      playlistId: playlist.id,
+      playlist: playlist.label,
+      source: playlist.source,
+      confidence: playlist.confidence
+    });
+  }
+
+  buildRankState(player, playlist) {
+    if (!this.config.rankEnabled) {
+      return createEmptyRankState({
+        status: "disabled",
+        playlistId: playlist.id,
+        playlistName: playlist.label,
+        playlistShort: playlist.short
+      });
+    }
+
+    const signature = this.getRankSignature(player && player.PrimaryId, playlist.id);
+    const previousRank = this.latestState.rank || createEmptyRankState();
+    if (signature && previousRank.signature === signature) return previousRank;
+    if (!signature && hasDisplayableRank(previousRank)) {
+      return {
+        ...previousRank,
+        stale: true
+      };
+    }
+
+    return createEmptyRankState({
+      status: signature ? "idle" : "unavailable",
+      signature,
+      playlistId: playlist.id,
+      playlistName: playlist.label,
+      playlistShort: playlist.short,
+      error: signature ? null : "missing-player-or-playlist"
+    });
+  }
+
+  queueRankLookup(player, playlist) {
+    if (!this.config.rankEnabled || !player || !player.PrimaryId || playlist.id === null) return;
+
+    const signature = this.getRankSignature(player.PrimaryId, playlist.id);
+    const requestKey = `${this.latestState.matchGuid || "no-match"}|${signature}`;
+    if (!signature || requestKey === this.lastRankRequestKey) return;
+
+    this.lastRankRequestKey = requestKey;
+    this.latestState.rank = {
+      ...this.latestState.rank,
+      status: "loading",
+      signature,
+      playlistId: playlist.id,
+      playlistName: playlist.label,
+      playlistShort: playlist.short,
+      error: null
+    };
+    this.emit("rankLookup", {
+      requestKey,
+      signature,
+      primaryId: player.PrimaryId,
+      playerName: player.Name,
+      playlist
+    });
+  }
+
+  applyRankResult(signature, rank) {
+    if (!signature || !this.latestState.rank || this.latestState.rank.signature !== signature) return false;
+
+    this.latestState.rank = {
+      ...this.latestState.rank,
+      ...rank,
+      signature
+    };
+    this.emitState();
+    return true;
+  }
+
+  getRankSignature(primaryId, playlistId) {
+    if (!primaryId || playlistId === null || playlistId === undefined) return "";
+    return `${primaryId}|${playlistId}`;
+  }
+
   findConfiguredPlayer(players) {
     const primaryId = normalize(this.config.primaryId);
     const playerName = normalize(this.config.playerName);
@@ -375,6 +550,23 @@ class AppState extends EventEmitter {
 
       const partial = players.find((player) => normalize(player.Name).includes(playerName));
       if (partial) return partial;
+    }
+
+    return null;
+  }
+
+  findKnownPlayer(players) {
+    const primaryId = normalize(this.latestState.playerPrimaryId);
+    const playerName = normalize(this.latestState.playerName);
+
+    if (primaryId) {
+      const byPrimaryId = players.find((player) => normalize(player.PrimaryId) === primaryId);
+      if (byPrimaryId) return { ...byPrimaryId, bAutoDetectedKnown: true };
+    }
+
+    if (playerName) {
+      const byName = players.find((player) => normalize(player.Name) === playerName);
+      if (byName) return { ...byName, bAutoDetectedKnown: true };
     }
 
     return null;
@@ -398,10 +590,6 @@ class AppState extends EventEmitter {
         TeamNum: target.TeamNum,
         bAutoDetectedFromTarget: true
       };
-    }
-
-    if (!this.config.playerName && !this.config.primaryId && players.length === 1) {
-      return { ...players[0], bAutoDetectedSinglePlayer: true };
     }
 
     return null;
@@ -475,6 +663,8 @@ class AppState extends EventEmitter {
       playerTeamNum: parseTeamNum(this.config.manualTeamNum),
       winnerTeamNum: null,
       resultEligible: false,
+      maxPlayers: 0,
+      playlistGuessReady: false,
       game: null,
       players: []
     };
@@ -603,6 +793,16 @@ class AppState extends EventEmitter {
     const team = teams.find((item) => Number(item.TeamNum) === teamNum);
     return team ? Number(team.Score || 0) : 0;
   }
+}
+
+function countTeamPlayers(players) {
+  return players.filter((player) => player && (player.TeamNum === 0 || player.TeamNum === 1)).length;
+}
+
+function hasDisplayableRank(rank) {
+  if (!rank || rank.status === "disabled") return false;
+  if (rank.rating !== null && rank.rating !== undefined) return true;
+  return rank.status === "missing" && Boolean(rank.tier);
 }
 
 module.exports = {

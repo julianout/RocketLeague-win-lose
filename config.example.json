@@ -4,5 +4,7 @@
   "playerName": "",
   "primaryId": "",
   "manualTeamNum": null,
+  "rankEnabled": true,
+  "rankPlaylistId": "auto",
   "overlayDurationMs": 6500
 }

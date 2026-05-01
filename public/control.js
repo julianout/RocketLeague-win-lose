@@ -6,6 +6,8 @@ const el = {
   detectedTeam: document.getElementById("detectedTeam"),
   currentScore: document.getElementById("currentScore"),
   currentWinner: document.getElementById("currentWinner"),
+  currentPlaylist: document.getElementById("currentPlaylist"),
+  currentRank: document.getElementById("currentRank"),
   sessionWins: document.getElementById("sessionWins"),
   sessionLosses: document.getElementById("sessionLosses"),
   sessionStreak: document.getElementById("sessionStreak"),
@@ -16,6 +18,8 @@ const el = {
   playerName: document.getElementById("playerName"),
   primaryId: document.getElementById("primaryId"),
   manualTeamNum: document.getElementById("manualTeamNum"),
+  rankEnabled: document.getElementById("rankEnabled"),
+  rankPlaylistId: document.getElementById("rankPlaylistId"),
   overlayDurationMs: document.getElementById("overlayDurationMs")
 };
 
@@ -44,6 +48,8 @@ function bindActions() {
       playerName: el.playerName.value,
       primaryId: el.primaryId.value,
       manualTeamNum: el.manualTeamNum.value,
+      rankEnabled: el.rankEnabled.value === "true",
+      rankPlaylistId: el.rankPlaylistId.value,
       overlayDurationMs: Number(el.overlayDurationMs.value || 6500)
     });
     if (state) {
@@ -135,6 +141,8 @@ function renderLiveMatch(latest) {
   el.detectedTeam.textContent = formatTeam(latest.playerTeamNum);
   el.currentScore.textContent = formatScore(latest.teams || []);
   el.currentWinner.textContent = formatTeam(latest.winnerTeamNum);
+  el.currentPlaylist.textContent = formatPlaylist(latest.playlist);
+  el.currentRank.textContent = formatRank(latest.rank);
 }
 
 function renderSession(session) {
@@ -148,6 +156,8 @@ function renderConfig(config) {
   el.playerName.value = config.playerName || "";
   el.primaryId.value = config.primaryId || "";
   el.manualTeamNum.value = config.manualTeamNum === 0 || config.manualTeamNum === 1 ? String(config.manualTeamNum) : "";
+  el.rankEnabled.value = config.rankEnabled === false ? "false" : "true";
+  el.rankPlaylistId.value = config.rankPlaylistId === undefined || config.rankPlaylistId === null ? "auto" : String(config.rankPlaylistId);
   el.overlayDurationMs.value = config.overlayDurationMs || 6500;
 }
 
@@ -228,6 +238,21 @@ function formatTeam(teamNum) {
   if (teamNum === 0 || teamNum === "0") return "Blue";
   if (teamNum === 1 || teamNum === "1") return "Orange";
   return "-";
+}
+
+function formatPlaylist(playlist) {
+  if (!playlist || playlist.id === null || playlist.id === undefined) return "-";
+  const source = playlist.source === "player-count" ? " auto" : "";
+  return `${playlist.short || playlist.label}${source}`;
+}
+
+function formatRank(rank) {
+  if (!rank || rank.status === "idle" || rank.status === "unavailable") return "-";
+  if (rank.status === "disabled") return "off";
+  if (rank.status === "loading") return "loading";
+  if (rank.status === "error") return "error";
+  if (rank.rating !== null && rank.rating !== undefined) return String(rank.rating);
+  return rank.tier || "-";
 }
 
 function formatStreak(streak) {

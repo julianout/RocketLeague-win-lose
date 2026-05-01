@@ -11,6 +11,8 @@ const el = {
   resultSession: document.getElementById("resultSession"),
   resultStreak: document.getElementById("resultStreak"),
   sessionHud: document.getElementById("sessionHud"),
+  hudRankMode: document.getElementById("hudRankMode"),
+  hudMmr: document.getElementById("hudMmr"),
   hudWins: document.getElementById("hudWins"),
   hudLosses: document.getElementById("hudLosses"),
   hudStreak: document.getElementById("hudStreak"),
@@ -22,7 +24,10 @@ let hideTimer = null;
 
 el.sessionHud.style.display = settings.showHud ? "grid" : "none";
 document.body.classList.toggle("hud-hidden", !settings.showHud);
-if (params.get("demo") === "1") renderSession({ wins: 6, losses: 0, streak: 0 });
+if (params.get("demo") === "1") {
+  renderSession({ wins: 6, losses: 0, streak: 0 });
+  renderRank({ status: "ready", playlistShort: "2V2", rating: 1440 });
+}
 connect();
 
 function connect() {
@@ -43,6 +48,7 @@ function connect() {
 
 function renderState(state) {
   renderSession(state.session || {});
+  renderRank((state.latestState && state.latestState.rank) || null);
 }
 
 function renderResult(payload) {
@@ -58,11 +64,34 @@ function renderResult(payload) {
   el.resultSession.textContent = `${session.wins || 0}W ${session.losses || 0}L`;
   el.resultStreak.textContent = formatStreakValue(session.streak || 0);
   renderSession(session);
+  renderRank(payload.latestState && payload.latestState.rank);
 
   clearTimeout(hideTimer);
   hideTimer = window.setTimeout(() => {
     el.resultBanner.classList.add("is-hidden");
   }, durationMs);
+}
+
+function renderRank(rank) {
+  if (!rank || rank.status === "disabled") {
+    el.hudRankMode.textContent = "MMR";
+    el.hudMmr.textContent = "-";
+    return;
+  }
+
+  el.hudRankMode.textContent = rank.playlistShort || "MMR";
+
+  if (rank.status === "loading") {
+    el.hudMmr.textContent = "...";
+  } else if (rank.status === "ready" && rank.rating !== null && rank.rating !== undefined) {
+    el.hudMmr.textContent = String(rank.rating);
+  } else if (rank.status === "missing") {
+    el.hudMmr.textContent = "UR";
+  } else if (rank.status === "error") {
+    el.hudMmr.textContent = "--";
+  } else {
+    el.hudMmr.textContent = "-";
+  }
 }
 
 function renderSession(session) {

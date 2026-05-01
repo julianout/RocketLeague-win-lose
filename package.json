@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check src/app-state.js && node --check src/json-stream.js && node --check src/logger.js && node --check src/paths.js && node --check src/stats-client.js && node --check src/utils.js && node --check public/control.js && node --check public/overlay.js && node --check scripts/smoke-test.js",
+    "launcher": "node LANCER.js",
+    "check": "node --check server.js && node --check LANCER.js && node --check src/app-state.js && node --check src/json-stream.js && node --check src/logger.js && node --check src/paths.js && node --check src/playlist.js && node --check src/stats-client.js && node --check src/tracker-client.js && node --check src/utils.js && node --check public/control.js && node --check public/overlay.js && node --check scripts/smoke-test.js",
     "test": "npm run check && node scripts/smoke-test.js"
   },
   "dependencies": {

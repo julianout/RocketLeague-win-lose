@@ -1,0 +1,101 @@
+# Rocket League Win/Lose Overlay
+
+Overlay OBS simple pour afficher ton record de session Rocket League : **wins, losses et winstreak**.
+
+Compatible avec l'EAC, car l'app ne hook pas Rocket League et n'injecte rien dans le jeu. Le win/loss utilise la **Stats API officielle locale** de Rocket League. Le MMR optionnel vient de Tracker.gg.
+
+## Fonctionnalites
+
+- Overlay transparent pour OBS Browser Source
+- Compteur de victoires / defaites
+- Winstreak / losestreak
+- MMR Tracker affiche selon le mode detecte
+- Detection automatique du joueur quand la Stats API fournit les infos
+- Detection du mode si Rocket League l'envoie, sinon deduction par nombre de joueurs
+- Detection du resultat via `MatchEnded`
+- Fallback sur le score final lors de certains FF / abandons via `MatchDestroyed`
+- Dashboard local simple pour surveiller la connexion, les logs et la session
+- Mode depannage manuel pour corriger un match si Rocket League n'envoie pas assez d'infos
+- Aucun compte externe, aucune API key, aucun BakkesMod
+
+## Installation
+
+1. Installe **Node.js LTS** :
+   https://nodejs.org/
+
+2. Telecharge / extrais le projet.
+
+3. Lance :
+   `node LANCER.js`
+
+Le lanceur installe automatiquement les dependances au premier lancement.
+
+## Configuration Rocket League
+
+Active la Stats API dans :
+
+`<Dossier Rocket League>\TAGame\Config\DefaultStatsAPI.ini`
+
+Exemple :
+
+```ini
+[TAGame.MatchStatsExporter_TA]
+Port=49123
+PacketSendRate=30
+```
+
+Ferme completement Rocket League, puis relance-le apres modification.
+
+## OBS
+
+Ajoute une **Browser Source** :
+
+`http://localhost:5177/overlay.html`
+
+Resolution conseillee :
+
+- Width: `1920`
+- Height: `1080`
+
+Pas besoin de CSS custom OBS.
+
+## Dashboard
+
+Le panneau local s'ouvre ici :
+
+`http://localhost:5177/control.html`
+
+En usage normal, il n'y a rien a configurer. Lance l'app, ajoute le lien OBS, puis joue.
+
+Le bloc **Depannage manuel** sert seulement si l'auto-detection echoue ou si un match doit etre corrige manuellement.
+
+## Limites
+
+- Ne s'affiche pas directement par-dessus Rocket League en fullscreen exclusif.
+- Utilise OBS Browser Source pour rester propre avec EAC.
+- Si Rocket League n'envoie ni `MatchEnded`, ni winner, ni score exploitable, l'app ne peut pas deviner le resultat avec certitude.
+- Le mode exact ranked/casual n'est pas toujours fourni par Rocket League. Dans ce cas l'app deduit le mode par nombre de joueurs ou laisse un override manuel.
+- Le MMR vient de Tracker.gg : il peut avoir du delai, renvoyer `403`, ou ne pas trouver certains profils.
+
+## Depannage rapide
+
+Si le dashboard reste en `disconnected` :
+
+- verifie que Rocket League est lance ;
+- verifie `Port=49123` et `PacketSendRate=30` ;
+- redemarre completement Rocket League ;
+- verifie que le port `49123` est ouvert avec ton outil reseau Windows si besoin.
+
+Si OBS garde un ancien rendu :
+
+- ouvre les proprietes de la Browser Source ;
+- clique sur **Refresh cache of current page**.
+
+## Securite
+
+L'app tourne en local sur ton PC.
+
+- Pas d'injection dans Rocket League
+- Pas de BakkesMod
+- Pas d'API key
+- Pas de collecte de donnees

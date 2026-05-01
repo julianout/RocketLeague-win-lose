@@ -1,6 +1,6 @@
 # Rocket League Win/Lose Overlay
 
-Overlay OBS Win/Lose compatible EAC via la Stats API officielle de Rocket League. Il ne hook pas le jeu et n'utilise pas BakkesMod.
+Overlay OBS Win/Lose compatible EAC via la Stats API officielle de Rocket League. Il ne hook pas le jeu et n'utilise pas BakkesMod. Le MMR optionnel vient de Tracker.gg.
 
 ## Installation
 
@@ -46,14 +46,27 @@ Redemarre Rocket League apres modification.
 
 Ouvre `http://localhost:5177/control.html`. En usage normal tu n'as rien a regler : lance l'app, ajoute le lien OBS, puis joue. L'ecran principal sert seulement a surveiller :
 
-- statut de connexion, joueur detecte, equipe et score ;
+- statut de connexion, joueur detecte, equipe, score, mode MMR et MMR Tracker ;
 - compteur de session ;
 - historique session ;
 - logs de diagnostic.
 
-Tout le reste est replie dans `Depannage manuel` : pseudo force, equipe de secours, URL Stats API, correction `+ WIN` / `+ LOSE`, reset et tests. L'URL Stats API par defaut est `tcp://127.0.0.1:49123`. Les anciennes valeurs `ws://127.0.0.1:49123` sont migrees vers TCP au chargement.
+Tout le reste est replie dans `Depannage manuel` : pseudo force, equipe de secours, URL Stats API, mode MMR force, correction `+ WIN` / `+ LOSE`, reset et tests. L'URL Stats API par defaut est `tcp://127.0.0.1:49123`. Les anciennes valeurs `ws://127.0.0.1:49123` sont migrees vers TCP au chargement.
 
 L'app detecte ton equipe dans les paquets `UpdateState`, puis au `MatchEnded` compare ton `TeamNum` avec `WinnerTeamNum`. Si Rocket League envoie seulement `MatchDestroyed` apres un abandon/FF, l'app deduit aussi le resultat depuis le dernier score connu quand le match a un `MatchGuid`.
+
+## MMR Tracker
+
+Le MMR n'est pas fourni par la Stats API officielle. L'app utilise donc Tracker.gg avec le `PrimaryId` du joueur vu dans la Stats API.
+
+Detection du mode :
+
+- si Rocket League envoie un champ playlist/mode non documente, l'app l'utilise ;
+- sinon l'app deduit 1v1/2v2/3v3 depuis le nombre de joueurs ;
+- ranked vs casual n'est pas fiable si Rocket League ne l'envoie pas ;
+- si l'auto se trompe, force le mode dans `Depannage manuel`.
+
+Tracker peut avoir du delai, renvoyer `403`, ou ne pas trouver certains profils.
 
 ## Logs
 
@@ -63,6 +76,8 @@ Le panneau de controle affiche les logs en direct. Les messages importants :
 - `Match state` : la connexion Stats API marche et un etat de match est arrive.
 - `Score update` : les scores Blue/Orange sont lus correctement.
 - `Joueur detecte` : le pseudo ou `PrimaryId` correspond bien.
+- `Mode MMR detecte` : le mode utilise pour choisir le MMR Tracker.
+- `MMR Tracker recu` : le MMR a ete lu depuis Tracker.
 - `Aucun joueur ne correspond` : le pseudo configure ne matche pas les joueurs vus par l'API.
 - `MatchEnded recu` : la fin de match est bien detectee.
 - `Resultat deduit sur MatchDestroyed` : Rocket League n'a pas envoye `MatchEnded`, donc l'app compte le resultat depuis le score final connu.
@@ -104,7 +119,7 @@ http://localhost:5177/overlay.html
 
 Largeur conseillee : `1920`, hauteur : `1080`. Pas besoin de CSS perso dans OBS.
 
-Le rendu affiche une petite barre en haut a droite avec wins, losses et winstreak, puis un toast WIN/LOSE compact en fin de match. La barre utilise un asset SVG transparent dans `public/assets/rocketstats-strip.svg`, donc OBS n'a pas besoin de CSS perso.
+Le rendu affiche une petite barre en haut a droite avec MMR, wins, losses et winstreak, puis un toast WIN/LOSE compact en fin de match. La barre utilise un asset SVG transparent dans `public/assets/rocketstats-strip.svg`, donc OBS n'a pas besoin de CSS perso.
 
 Si OBS affiche encore un ancien fond, clique `Refresh cache of current page` dans les proprietes de la Browser Source.
 

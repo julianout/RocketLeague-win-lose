@@ -28,7 +28,9 @@ Garde la fenetre noire ouverte pendant que tu joues.
 
 OBS
 
-L'overlay affiche une petite barre WIN / LOSE / WINSTREAK en haut a droite.
+L'overlay affiche une petite barre MMR / WIN / LOSE / WINSTREAK en haut a droite.
+Le MMR vient de Tracker.gg. Si le mode auto se trompe, ouvre "Depannage manuel"
+et force le mode MMR.
 La barre utilise une image SVG transparente integree, donc tu gardes juste le lien OBS.
 Un overlay externe au-dessus du plein ecran exclusif n'est pas fiable sans hook/injection, donc on reste sur OBS pour garder une approche propre avec EAC.
 

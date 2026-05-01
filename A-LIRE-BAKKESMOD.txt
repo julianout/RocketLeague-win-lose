@@ -1,0 +1,35 @@
+ROCKET LEAGUE WIN/LOSE OVERLAY
+
+Version upload BakkesMod: aucun fichier .bat dans ce zip.
+
+1. Installe Node.js LTS si tu ne l'as pas :
+   https://nodejs.org/
+
+2. Lance l'overlay :
+   - double-clique LANCER.js si Windows l'ouvre avec Node.js ;
+   - sinon ouvre un terminal dans le dossier et lance :
+     node LANCER.js
+
+3. Dans OBS, ajoute une Browser Source :
+   http://localhost:5177/overlay.html
+
+   Largeur 1920, hauteur 1080. Pas besoin de CSS perso.
+
+4. Dans Rocket League, active la Stats API avant de lancer le jeu :
+   <Install Dir>\TAGame\Config\DefaultStatsAPI.ini
+
+   [TAGame.MatchStatsExporter_TA]
+   Port=49123
+   PacketSendRate=30
+
+5. Ferme completement Rocket League puis relance-le.
+
+Le dashboard local est ici :
+http://localhost:5177/control.html
+
+En usage normal, tu n'as rien a configurer. Le bloc "Depannage manuel"
+sert seulement si l'auto-detection echoue ou si tu dois corriger un match.
+
+Le MMR vient de Tracker.gg. Le mode est detecte automatiquement si possible,
+sinon deduit par nombre de joueurs. Si l'auto se trompe, force le mode MMR
+dans "Depannage manuel".

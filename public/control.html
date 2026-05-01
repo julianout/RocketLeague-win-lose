@@ -41,6 +41,14 @@
               <dt>Score</dt>
               <dd id="currentScore">0-0</dd>
             </div>
+            <div>
+              <dt>Mode MMR</dt>
+              <dd id="currentPlaylist">-</dd>
+            </div>
+            <div>
+              <dt>MMR Tracker</dt>
+              <dd id="currentRank">-</dd>
+            </div>
           </dl>
           <p class="status-note">
             Transport <span id="connectionMode">-</span>. Winner detecte <span id="currentWinner">-</span>.
@@ -103,6 +111,29 @@
                 <label>
                   PrimaryId
                   <input id="primaryId" name="primaryId" autocomplete="off" placeholder="Epic|123|0 ou Steam|123|0">
+                </label>
+                <label>
+                  MMR Tracker
+                  <select id="rankEnabled" name="rankEnabled">
+                    <option value="true">Active</option>
+                    <option value="false">Desactive</option>
+                  </select>
+                </label>
+                <label>
+                  Mode MMR
+                  <select id="rankPlaylistId" name="rankPlaylistId">
+                    <option value="auto">Auto</option>
+                    <option value="0">Casual</option>
+                    <option value="10">1v1</option>
+                    <option value="11">2v2</option>
+                    <option value="13">3v3</option>
+                    <option value="27">Hoops</option>
+                    <option value="28">Rumble</option>
+                    <option value="29">Dropshot</option>
+                    <option value="30">Snowday</option>
+                    <option value="61">4v4</option>
+                    <option value="63">Heatseeker</option>
+                  </select>
                 </label>
                 <label>
                   Duree animation

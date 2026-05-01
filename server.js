@@ -6,6 +6,7 @@ const WebSocket = require("ws");
 const paths = require("./src/paths");
 const { AppState, DEFAULT_CONFIG } = require("./src/app-state");
 const { StatsClient } = require("./src/stats-client");
+const { TrackerClient } = require("./src/tracker-client");
 const { parseTeamNum } = require("./src/utils");
 
 const MIME_TYPES = {
@@ -20,6 +21,7 @@ const MIME_TYPES = {
 
 const appState = new AppState(paths);
 let liveServer = null;
+const activeRankRequests = new Set();
 
 const statsClient = new StatsClient({
   getUrl: () => appState.config.statsApiUrl,
@@ -27,8 +29,18 @@ const statsClient = new StatsClient({
   log: (level, message, details) => appState.log(level, message, details),
   emitState: () => appState.emitState()
 });
+const trackerClient = new TrackerClient({
+  log: (level, message, details) => appState.log(level, message, details)
+});
 
 appState.setStatsStatusProvider(() => statsClient.status());
+appState.on("rankLookup", (request) => {
+  fetchRank(request).catch((error) => {
+    appState.log("warn", "Tracker MMR erreur inattendue", {
+      error: error && error.message ? error.message : String(error)
+    });
+  });
+});
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
@@ -156,11 +168,39 @@ async function handleConfigUpdate(req, res) {
     playerName: String(body.playerName || "").trim(),
     primaryId: String(body.primaryId || "").trim(),
     manualTeamNum: parseTeamNum(body.manualTeamNum),
+    rankEnabled: body.rankEnabled !== false && body.rankEnabled !== "false",
+    rankPlaylistId: body.rankPlaylistId || "auto",
     overlayDurationMs: Number(body.overlayDurationMs || appState.config.overlayDurationMs)
   });
 
   if (result.statsApiUrlChanged) statsClient.connect();
   sendState(res);
+}
+
+async function fetchRank(request) {
+  if (!request || activeRankRequests.has(request.requestKey)) return;
+  activeRankRequests.add(request.requestKey);
+
+  try {
+    const rank = await trackerClient.getPlaylistRank({
+      primaryId: request.primaryId,
+      playerName: request.playerName,
+      playlistId: request.playlist.id
+    });
+    const applied = appState.applyRankResult(request.signature, rank);
+    if (applied) {
+      appState.log(rank.status === "ready" ? "info" : "warn", rank.status === "ready" ? "MMR Tracker recu" : "MMR Tracker indisponible", {
+        playlist: rank.playlistName,
+        rating: rank.rating,
+        tier: rank.tier || null,
+        division: rank.division || null,
+        status: rank.status,
+        error: rank.error || null
+      });
+    }
+  } finally {
+    activeRankRequests.delete(request.requestKey);
+  }
 }
 
 function recordManualResult(result) {
