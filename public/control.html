@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RL Win/Lose Control</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="control-page">
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div>
+          <p class="eyebrow">OBS Browser Source</p>
+          <h1>Win / Lose Overlay</h1>
+        </div>
+        <nav class="header-actions" aria-label="Actions rapides">
+          <a class="button secondary" href="/overlay.html" target="_blank" rel="noreferrer">Ouvrir OBS</a>
+        </nav>
+      </header>
+
+      <section class="dashboard-grid">
+        <article class="panel span-8">
+          <div class="panel-heading">
+            <h2>Statut live</h2>
+            <span id="connectionPill" class="status-pill">starting</span>
+          </div>
+          <dl class="metric-grid">
+            <div>
+              <dt>Connexion</dt>
+              <dd id="connectionState">starting</dd>
+            </div>
+            <div>
+              <dt>Joueur</dt>
+              <dd id="detectedPlayer">-</dd>
+            </div>
+            <div>
+              <dt>Equipe</dt>
+              <dd id="detectedTeam">-</dd>
+            </div>
+            <div>
+              <dt>Score</dt>
+              <dd id="currentScore">0-0</dd>
+            </div>
+          </dl>
+          <p class="status-note">
+            Transport <span id="connectionMode">-</span>. Winner detecte <span id="currentWinner">-</span>.
+          </p>
+        </article>
+
+        <article class="panel session-panel span-4">
+          <div class="panel-heading">
+            <h2>Session</h2>
+          </div>
+          <div class="record-big">
+            <span id="sessionWins">0</span>
+            <span>-</span>
+            <span id="sessionLosses">0</span>
+          </div>
+          <p id="sessionStreak" class="muted">Streak 0</p>
+        </article>
+
+        <article class="panel span-5">
+          <div class="panel-heading">
+            <h2>Historique session</h2>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </article>
+
+        <article class="panel span-7">
+          <div class="panel-heading">
+            <h2>Diagnostic</h2>
+            <button type="button" id="clearLogs" class="secondary compact">Effacer</button>
+          </div>
+          <div id="logList" class="log-list"></div>
+        </article>
+
+        <details class="panel span-12 troubleshoot-panel">
+          <summary>
+            <span>Depannage manuel</span>
+            <span>Config, corrections, tests</span>
+          </summary>
+
+          <div class="troubleshoot-grid">
+            <section class="troubleshoot-section">
+              <h3>Detection</h3>
+              <form id="configForm" class="config-form compact-config">
+                <label>
+                  Pseudo exact
+                  <input id="playerName" name="playerName" autocomplete="off" placeholder="Auto si vide">
+                </label>
+                <label>
+                  Equipe secours
+                  <select id="manualTeamNum" name="manualTeamNum">
+                    <option value="">Auto</option>
+                    <option value="0">Bleu</option>
+                    <option value="1">Orange</option>
+                  </select>
+                </label>
+                <label>
+                  URL Stats API
+                  <input id="statsApiUrl" name="statsApiUrl" autocomplete="off" placeholder="tcp://127.0.0.1:49123">
+                </label>
+                <label>
+                  PrimaryId
+                  <input id="primaryId" name="primaryId" autocomplete="off" placeholder="Epic|123|0 ou Steam|123|0">
+                </label>
+                <label>
+                  Duree animation
+                  <input id="overlayDurationMs" name="overlayDurationMs" inputmode="numeric" placeholder="6500">
+                </label>
+                <div class="form-actions">
+                  <button type="submit">Sauver</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="troubleshoot-section">
+              <h3>Correction</h3>
+              <div class="action-stack">
+                <div class="button-row">
+                  <button type="button" id="manualWin" class="win-action">+ WIN</button>
+                  <button type="button" id="manualLoss" class="loss-action">+ LOSE</button>
+                </div>
+                <div class="button-row">
+                  <button type="button" id="undoLast" class="secondary">Annuler</button>
+                  <button type="button" id="resetSession" class="danger">Reset</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="troubleshoot-section">
+              <h3>Tests</h3>
+              <div class="action-stack">
+                <button type="button" id="testConnection">Test connexion</button>
+                <div class="button-row">
+                  <button type="button" id="testWin" class="secondary">WIN</button>
+                  <button type="button" id="testLoss" class="secondary">LOSE</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </details>
+      </section>
+    </main>
+    <script src="/control.js"></script>
+  </body>
+</html>

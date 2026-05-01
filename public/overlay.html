@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RL Win/Lose Overlay</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0) !important;
+        overflow: hidden;
+      }
+    </style>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="overlay-page">
+    <main class="obs-overlay" aria-live="polite">
+      <section id="sessionHud" class="rocket-strip">
+        <div class="strip-item win">
+          <svg class="strip-icon trophy-icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path class="trophy-shadow" d="M12 22h8v3h4v3H8v-3h4z"></path>
+            <path class="trophy-main" d="M9 4h14v4.6c0 4.2-2.8 7.4-7 7.4S9 12.8 9 8.6V4z"></path>
+            <path class="trophy-main" d="M9 7H4.8c.1 5 2.5 7.8 6.7 8.4l.5-3.1C9.3 12 7.7 10.4 7.4 8.9H9zM23 7h4.2c-.1 5-2.5 7.8-6.7 8.4l-.5-3.1c2.7-.3 4.3-1.9 4.6-3.4H23z"></path>
+            <path class="trophy-stem" d="M14 16h4v6h-4z"></path>
+            <path class="trophy-glow" d="M14.5 6h3l-1.4 2.6 2.5.1-3.9 5 .9-3.4h-2.4z"></path>
+          </svg>
+          <span id="hudWins">0</span>
+        </div>
+        <div class="strip-separator"></div>
+        <div class="strip-item loss">
+          <svg class="strip-icon x-icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M5.7 2.8 16 13.1 26.3 2.8 29.2 5.7 18.9 16l10.3 10.3-2.9 2.9L16 18.9 5.7 29.2l-2.9-2.9L13.1 16 2.8 5.7z"></path>
+          </svg>
+          <span id="hudLosses">0</span>
+        </div>
+        <div class="strip-separator"></div>
+        <div id="streakRow" class="strip-item streak neutral">
+          <svg id="hudStreakTag" class="strip-icon flame-icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path class="flame-outer" d="M18.5 2.2c.5 4.5-1.8 6.5-4 8.5-2 1.8-3.6 3.8-3.6 7.2 0 5 3.7 8.7 8.6 8.7 4.6 0 8-3.6 8-8.2 0-3.6-1.8-6.3-4.6-8.8.2 2.4-.8 4.6-2.8 6.2.3-3.6-1.6-5.6-1.6-13.6z"></path>
+            <path class="flame-inner" d="M19.2 25c2.2-.4 3.8-2.1 3.8-4.3 0-1.7-.8-3.1-2.2-4.3-.1 1.7-.9 3-2.4 4 .2-1.9-.7-3.2-.1-5.4-2.5 2.1-3.8 3.6-3.8 5.8 0 2.4 1.8 4.1 4.7 4.2z"></path>
+          </svg>
+          <span id="hudStreak">+0</span>
+        </div>
+      </section>
+
+      <section id="resultBanner" class="result-toast is-hidden">
+        <span id="resultWord" class="toast-word">WIN</span>
+        <span id="resultScore">0-0</span>
+        <span id="resultSession">0W 0L</span>
+        <span id="resultStreak">+0</span>
+      </section>
+    </main>
+    <script src="/overlay.js"></script>
+  </body>
+</html>

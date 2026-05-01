@@ -1,0 +1,47 @@
+ROCKET LEAGUE WIN/LOSE OVERLAY
+
+1. Installe Node.js LTS si tu ne l'as pas :
+   https://nodejs.org/
+
+2. Lance :
+   START-WINDOWS.bat
+
+3. Dans le panneau qui s'ouvre :
+   - ne regle rien en usage normal
+   - regarde juste Statut live / Session / Diagnostic
+   - ouvre "Depannage manuel" seulement si l'auto-detection echoue
+   - lance DIAG-WINDOWS.bat si ca reste en connecting
+
+4. Dans OBS, ajoute une Browser Source :
+   http://localhost:5177/overlay.html
+
+   Largeur 1920, hauteur 1080. Pas besoin de CSS perso.
+   Si tu vois encore du noir, clique "Refresh cache of current page" dans la source OBS.
+
+5. Dans Rocket League, active la Stats API avant de lancer le jeu :
+   <Install Dir>\TAGame\Config\DefaultStatsAPI.ini
+
+   PacketSendRate=30
+   Port=49123
+
+Garde la fenetre noire ouverte pendant que tu joues.
+
+OBS
+
+L'overlay affiche une petite barre WIN / LOSE / WINSTREAK en haut a droite.
+La barre utilise une image SVG transparente integree, donc tu gardes juste le lien OBS.
+Un overlay externe au-dessus du plein ecran exclusif n'est pas fiable sans hook/injection, donc on reste sur OBS pour garder une approche propre avec EAC.
+
+LOGS UTILES
+
+ECONNREFUSED 127.0.0.1:49123 = Rocket League ne fournit pas la Stats API.
+Match state = la connexion au jeu marche.
+Score update = les scores Blue/Orange sont lus correctement.
+Joueur detecte = l'overlay sait quelle equipe compter.
+Aucun joueur ne correspond = corrige ton pseudo dans le panneau.
+Resultat deduit sur MatchDestroyed = FF/abandon compte depuis le score connu.
+
+DIAGNOSTIC
+
+Si ca reste sur connecting, ferme Rocket League, relance-le, puis lance DIAG-WINDOWS.bat.
+Si le diagnostic dit "RIEN n'ecoute sur 49123", Rocket League n'a pas charge la Stats API.

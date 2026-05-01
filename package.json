@@ -1,0 +1,15 @@
+{
+  "name": "rocket-league-winlose-overlay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rocket League Stats API Win/Lose/Winstreak overlay for OBS.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check src/app-state.js && node --check src/json-stream.js && node --check src/logger.js && node --check src/paths.js && node --check src/stats-client.js && node --check src/utils.js && node --check public/control.js && node --check public/overlay.js && node --check scripts/smoke-test.js",
+    "test": "npm run check && node scripts/smoke-test.js"
+  },
+  "dependencies": {
+    "ws": "^8.20.0"
+  }
+}
